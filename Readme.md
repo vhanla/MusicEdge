@@ -29,12 +29,12 @@ Features:
 Requirements:
 ------------
 
-- Windows 10 April 2018 Update
-- It might work on all Windows with Edge (not tested)
+- Windows 10, version 1803 or newer
 
 Changelog:
 ---------
-
+- 2019-05-13
+  Updated to newer Microsoft.Toolkit.Wpf.UI.Controls.WebView
 - 2018-05-09:
   Written from scratch 
   
