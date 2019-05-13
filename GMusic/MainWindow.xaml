@@ -4,7 +4,7 @@
                       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
                       xmlns:local="clr-namespace:GMusic"
                       xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
-                      xmlns:WPF="clr-namespace:Microsoft.Toolkit.Win32.UI.Controls.WPF;assembly=Microsoft.Toolkit.Win32.UI.Controls" x:Class="GMusic.MainWindow"
+                      xmlns:WPF="clr-namespace:Microsoft.Toolkit.Wpf.UI.Controls;assembly=Microsoft.Toolkit.Wpf.UI.Controls.WebView" x:Class="GMusic.MainWindow"
                       mc:Ignorable="d"
                       BorderThickness="0"
                       ResizeMode="CanResizeWithGrip"

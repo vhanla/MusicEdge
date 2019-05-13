@@ -131,7 +131,7 @@ namespace GMusic
         
         private void MetroWindow_Initialized(object sender, EventArgs e)
         {
-            webView1.Navigate(new Uri("https://play.google.com/music"));
+            webView1.Source = new Uri("https://play.google.com/music");
             string exepath = AppDomain.CurrentDomain.BaseDirectory;
             if (File.Exists(exepath + "style.css"))
             {
