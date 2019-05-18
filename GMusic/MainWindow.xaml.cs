@@ -4,6 +4,11 @@ using System;
 using System.Windows;
 using System.Windows.Input;
 using System.IO;
+using System.Windows.Media.Imaging;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
+using System.Drawing;
+using System.Windows.Interop;
 
 namespace GMusic
 {
@@ -14,15 +19,21 @@ namespace GMusic
     {
         private readonly IKeyboardInterceptor _interceptor;
 
+        private SongInfo songInfo = new SongInfo();
+        private string _prevArt = "";
+        private Bitmap _coverArt;
+
         System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer();
 
         private string MediaKey;
 
         private string Style;
+
         
         public MainWindow()
         {
             InitializeComponent();
+            Loaded += WindowLoaded;
 
             _interceptor = new KeyboardInterceptor();
             //_interceptor.KeyPress += (sender, args) => Title += args.KeyChar;
@@ -32,6 +43,78 @@ namespace GMusic
             timer.Tick += new EventHandler(ftimer);
             timer.Interval = new TimeSpan(0,0,0,0,250);
             timer.Start();
+
+        }
+
+        protected override void OnSourceInitialized(EventArgs e)
+        {
+            base.OnSourceInitialized(e);
+
+            HwndSource source = PresentationSource.FromVisual(this) as HwndSource;
+            source.AddHook(WndProc);
+        }
+
+        private void WindowLoaded(object sender, RoutedEventArgs e)
+        {
+            Bitmap bmp = (Bitmap)Bitmap.FromFile("C:\\Users\\vhanla\\Pictures\\Brushes\\WHITE\\WS02.PNG");
+            //Bitmap bmp = new Bitmap(_bmp.Width, _bmp.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+            //using (Graphics gr = Graphics.FromImage(_bmp))
+            //{
+            //    gr.DrawImage(_bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
+            //}
+                IntPtr hBitmap = bmp.GetHbitmap();
+            IntPtr hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;//Process.GetCurrentProcess().MainWindowHandle;
+            int attr = (int)NativeMethods.TRUE;
+            int hResult = NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA.FORCE_ICONIC_REPRESENTATION, ref attr, sizeof(int));
+            if (hResult != 0)
+                throw Marshal.GetExceptionForHR(hResult);
+            hResult = NativeMethods.DwmSetWindowAttribute(hwnd, NativeMethods.DWMWA.HAS_ICONIC_BITMAP, ref attr, sizeof(int));
+            if (hResult != 0)
+                throw Marshal.GetExceptionForHR(hResult);
+            //hResult = NativeMethods.DwmSetIconicThumbnail(hwnd, hBitmap, NativeMethods.DWM_SIT.DISPLAYFRAME);
+            hResult = NativeMethods.DwmSetIconicThumbnail(hwnd, hBitmap, 0);
+            if (hResult != 0)
+                throw Marshal.GetExceptionForHR(hResult);
+
+        }
+
+        private IntPtr WndProc(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            if (msg == NativeMethods.WM_DWMSENDICONICTHUMBNAIL)
+            {
+                //Bitmap bmp = new Bitmap(_bmp.Width, _bmp.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                //using (Graphics gr = Graphics.FromImage(_bmp))
+                //{
+                //    gr.DrawImage(_bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
+                //}
+
+                IntPtr hBitmap = _coverArt.GetHbitmap();
+                //IntPtr hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;//Process.GetCurrentProcess().MainWindowHandle;
+                int hResult = NativeMethods.DwmSetIconicThumbnail(hwnd, hBitmap, 0);
+                if (hResult != 0)
+                    throw Marshal.GetExceptionForHR(hResult); 
+
+
+            }
+            else if (msg == NativeMethods.WM_DWMSENDICONICLIVEPREVIEWBITMAP)
+            {
+                //Bitmap bmp = (Bitmap)Bitmap.FromStream(_cover.StreamSource);
+                //Bitmap bmp = new Bitmap(_bmp.Width, _bmp.Height, System.Drawing.Imaging.PixelFormat.Format32bppRgb);
+                //using (Graphics gr = Graphics.FromImage(_bmp))
+                //{
+                //    gr.DrawImage(_bmp, new Rectangle(0, 0, bmp.Width, bmp.Height));
+                //}
+
+                IntPtr hBitmap = _coverArt.GetHbitmap();
+                //IntPtr hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;//Process.GetCurrentProcess().MainWindowHandle;
+                int hResult = NativeMethods.DwmSetIconicLivePreviewBitmap(hwnd, hBitmap,(IntPtr)null ,0);
+                if (hResult != 0)
+                    throw Marshal.GetExceptionForHR(hResult); 
+
+
+
+            }
+            return IntPtr.Zero;
         }
 
         private void ftimer(object sender, EventArgs e)
@@ -55,6 +138,9 @@ namespace GMusic
                     Next();
                     break;
             }
+
+            // Update song info
+            UpdateSongInfo();
         }
 
         private void intercepta(object sender, System.Windows.Forms.KeyEventArgs e)
@@ -158,12 +244,71 @@ namespace GMusic
             MessageBox.Show(result.ToString());
         }
 
+        private async System.Threading.Tasks.Task GetAlbumArt()
+        {
+            var result = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('playerSongInfo').firstChild.firstChild.src" });
+            TaskThumb.Overlay = new BitmapImage(new Uri(result, UriKind.Absolute));
+        }
+
+        private async System.Threading.Tasks.Task UpdateSongInfo()
+        {
+            var artist = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('player-artist')?document.getElementById('player-artist').innerText:''" });
+            songInfo.Artist = artist;
+
+            var title = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('currently-playing-title')?document.getElementById('currently-playing-title').innerText:''" });
+            songInfo.Title = title;
+
+            var album = await webView1.InvokeScriptAsync("eval", new[] { "document.querySelectorAll('.player-album').length>0?document.querySelectorAll('.player-album')[0].innerText:''" });
+            songInfo.Album = album;
+
+            this.Title = (title == "") ? "Google Music Desktop Player": songInfo.Artist + " - " + songInfo.Title;
+
+            var coverArt = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('playerSongInfo').firstChild.firstChild.src" });
+            songInfo.CoverArt = coverArt;
+            if (_prevArt != songInfo.CoverArt)
+            {
+                _prevArt = songInfo.CoverArt;
+
+                IntPtr hwnd = new WindowInteropHelper(Application.Current.MainWindow).Handle;//Process.GetCurrentProcess().MainWindowHandle;
+
+                //BitmapImage _cover = new BitmapImage(new Uri(songInfo.CoverArt, UriKind.Absolute));
+                BitmapImage _cover = new BitmapImage();
+                _cover.BeginInit();
+                _cover.CacheOption = BitmapCacheOption.OnLoad;
+                _cover.UriSource = new Uri(songInfo.CoverArt, UriKind.Absolute);
+                _cover.EndInit();
+                _cover.DownloadCompleted += (s, e) =>
+                {
+                    _coverArt = BitmapImage2Bitmap(_cover);
+                    NativeMethods.DwmInvalidateIconicBitmaps(hwnd);
+                };
+
+                //_coverArt = (Bitmap)Bitmap.FromStream(_cover.StreamSource);
+                TaskThumb.Overlay = _cover;
+                
+
+            }
+        }
+
+        private Bitmap BitmapImage2Bitmap(BitmapImage bitmapImage)
+        {
+            using(MemoryStream outStream = new MemoryStream())
+            {
+                BitmapEncoder enc = new BmpBitmapEncoder();
+                enc.Frames.Add(BitmapFrame.Create(bitmapImage));
+                enc.Save(outStream);
+                Bitmap bitmap = new Bitmap(outStream);
+                return new Bitmap(bitmap);
+            }
+        }
+
         private void Play()
         {
             webView1.InvokeScriptAsync("eval", new[]
             {
                "if(document.querySelectorAll('[data-id=\"play-pause\"]')[0].title =='Play'){document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();}"
            });
+            //GetAlbumArt();
         }
 
         private void Pause()
@@ -182,6 +327,14 @@ namespace GMusic
             });
         }
 
+        private void PlayPause()
+        {
+            webView1.InvokeScriptAsync("eval", new[]
+            {
+                "document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();"
+            });
+        }
+
         private void Next()
         {
             webView1.InvokeScriptAsync("eval", new[]
@@ -189,9 +342,24 @@ namespace GMusic
                 "if(!document.querySelectorAll('[data-id=\"forward\"]')[0].disabled){document.querySelectorAll('[data-id=\"forward\"]')[0].click();}"
             });
         }
-        private void Button_Click(object sender, RoutedEventArgs e)
-        {
 
+        /**
+         * Taskbar Buttons
+         */
+        private void TBPlayPause(object sender, EventArgs e)
+        {
+            PlayPause();
         }
+
+        private void TBNext(object sender, EventArgs e)
+        {
+            Next();
+        }
+
+        private void TBPrev(object sender, EventArgs e)
+        {
+            Previous();
+        }
+
     }
 }
