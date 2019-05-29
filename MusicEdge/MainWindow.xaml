@@ -1,0 +1,80 @@
+﻿<controls:MetroWindow xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                      xmlns:local="clr-namespace:MusicEdge"
+                      xmlns:controls="http://metro.mahapps.com/winfx/xaml/controls"
+                      xmlns:WPF="clr-namespace:Microsoft.Toolkit.Wpf.UI.Controls;assembly=Microsoft.Toolkit.Wpf.UI.Controls.WebView" x:Class="MusicEdge.MainWindow"
+                      mc:Ignorable="d"
+                      BorderThickness="0"
+                      ResizeMode="CanResizeWithGrip"
+                      GlowBrush="Black"
+                      Title="Google Music Desktop Player" Height="600" Width="1000" Initialized="MetroWindow_Initialized" MinWidth="1000" MinHeight="600">
+    <Window.Resources>
+        <DrawingImage x:Key="Play">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <DrawingGroup.Children>
+                        <GeometryDrawing Brush="#FF1A1A1A" Geometry="F1 M 140.924,275.585C 140.924,222.247 184.169,179.003 237.512,179.003C 290.856,179.003 334.096,222.247 334.096,275.585C 334.096,328.929 290.856,372.172 237.512,372.172C 184.169,372.172 140.924,328.929 140.924,275.585 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 202.459,275.589L 202.459,223.553L 247.523,249.572L 292.584,275.589L 247.523,301.603L 202.459,327.621L 202.459,275.589 Z "/>
+                    </DrawingGroup.Children>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+        <DrawingImage x:Key="Previous">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <DrawingGroup.Children>
+                        <GeometryDrawing Brush="#FF1A1A1A" Geometry="F1 M 173.591,740.9C 173.591,687.557 216.836,644.316 270.179,644.316C 323.523,644.316 366.763,687.557 366.763,740.9C 366.763,794.241 323.523,837.485 270.179,837.485C 216.836,837.485 173.591,794.241 173.591,740.9 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 327.859,740.9L 327.859,787.731L 287.301,764.317L 246.743,740.9L 287.301,717.485L 327.859,694.071L 327.859,740.9 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 241.337,787.731L 212.5,787.731L 212.5,694.071L 241.337,694.071L 241.337,787.731 Z "/>
+                    </DrawingGroup.Children>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+        <DrawingImage x:Key="Next">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <DrawingGroup.Children>
+                        <GeometryDrawing Brush="#FF1A1A1A" Geometry="F1 M 526.805,740.9C 526.805,687.557 570.049,644.316 623.393,644.316C 676.736,644.316 719.976,687.557 719.976,740.9C 719.976,794.241 676.736,837.485 623.393,837.485C 570.049,837.485 526.805,794.241 526.805,740.9 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 565.712,740.9L 565.712,694.071L 606.267,717.485L 646.825,740.9L 606.267,764.317L 565.712,787.731L 565.712,740.9 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 652.232,694.071L 681.073,694.071L 681.073,787.731L 652.232,787.731L 652.232,694.071 Z "/>
+                    </DrawingGroup.Children>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+        <DrawingImage x:Key="Pause">
+            <DrawingImage.Drawing>
+                <DrawingGroup>
+                    <DrawingGroup.Children>
+                        <GeometryDrawing Brush="#FF1A1A1A" Geometry="F1 M 880.024,1211.73C 880.024,1158.38 923.264,1115.14 976.607,1115.14C 1029.95,1115.14 1073.19,1158.38 1073.19,1211.73C 1073.19,1265.06 1029.95,1308.31 976.607,1308.31C 923.264,1308.31 880.024,1265.06 880.024,1211.73 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 968.597,1263.76L 936.553,1263.76L 936.553,1159.69L 968.597,1159.69L 968.597,1263.76 Z "/>
+                        <GeometryDrawing Brush="#FFFFFFFF" Geometry="F1 M 1016.67,1263.76L 984.621,1263.76L 984.621,1159.69L 1016.67,1159.69L 1016.67,1263.76 Z "/>
+                    </DrawingGroup.Children>
+                </DrawingGroup>
+            </DrawingImage.Drawing>
+        </DrawingImage>
+
+
+
+    </Window.Resources>
+    <Window.TaskbarItemInfo>
+        <TaskbarItemInfo x:Name="TaskThumb">
+            <TaskbarItemInfo.ThumbButtonInfos>
+                <ThumbButtonInfo Description="Prev" Click="TBPrev" ImageSource="{StaticResource ResourceKey=Previous}" />
+                <ThumbButtonInfo Description="Pause" Click="TBPlayPause" ImageSource="{StaticResource ResourceKey=Pause}"/>
+                <ThumbButtonInfo Description="Play" Click="TBPlayPause" ImageSource="{StaticResource ResourceKey=Play}"/>
+                <ThumbButtonInfo Description="Next" Click="TBNext" ImageSource="{StaticResource ResourceKey=Next}"/>
+            </TaskbarItemInfo.ThumbButtonInfos>
+        </TaskbarItemInfo>
+    </Window.TaskbarItemInfo>
+    <Grid>
+
+        <WPF:WebView  Name="webView1"
+                     IsIndexedDBEnabled="True"
+                     IsJavaScriptEnabled="True"
+                     IsPrivateNetworkClientServerCapabilityEnabled="True"
+                     IsScriptNotifyAllowed="True"
+                     Source="about:blank" ScriptNotify="webView1_ScriptNotify" NavigationCompleted="webView1_NavigationCompleted" NavigationStarting="webView1_NavigationStarting" PermissionRequested="webView1_PermissionRequested" DOMContentLoaded="webView1_DOMContentLoaded" Margin="0,0,0,0" Panel.ZIndex="1" />
+    </Grid>
+</controls:MetroWindow>
