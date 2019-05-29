@@ -9,7 +9,11 @@
                       BorderThickness="0"
                       ResizeMode="CanResizeWithGrip"
                       GlowBrush="Black"
-                      Title="Google Music Desktop Player" Height="600" Width="1000" Initialized="MetroWindow_Initialized" MinWidth="1000" MinHeight="600">
+                      TitleCharacterCasing="Normal"
+                      WindowTransitionsEnabled="False"
+                      RenderOptions.ClearTypeHint="Enabled"
+                      TextOptions.TextFormattingMode="Display"
+                      Title="Google Music Desktop Player" Height="600" Width="1000" Initialized="MetroWindow_Initialized" MinWidth="100" MinHeight="160" Icon="GMusic_Icon.ico">
     <Window.Resources>
         <DrawingImage x:Key="Play">
             <DrawingImage.Drawing>
@@ -68,9 +72,43 @@
             </TaskbarItemInfo.ThumbButtonInfos>
         </TaskbarItemInfo>
     </Window.TaskbarItemInfo>
-    <Grid>
+    <controls:MetroWindow.RightWindowCommands>
+        <controls:WindowCommands>
+            <Button Click="Button_GMusic">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="GMusic"></TextBlock>
+                </StackPanel>
+            </Button>
+            <Button Click="Button_SoundCloud">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="SoundCloud"></TextBlock>
+                </StackPanel>
+            </Button>
+            <Button Click="Button_Jamendo">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Jamendo"></TextBlock>
+                </StackPanel>
+            </Button>
 
+            <Button Click="Button_Click">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Settings"></TextBlock>
+                </StackPanel>
+            </Button>
+        </controls:WindowCommands>
+    </controls:MetroWindow.RightWindowCommands>
+    <controls:MetroWindow.Flyouts>
+        <controls:FlyoutsControl>
+            <controls:Flyout x:Name="Settings" Header="Settings" Position="Right" Width="250" ClosingFinished="Settings_ClosingFinished"></controls:Flyout>
+        </controls:FlyoutsControl>
+    </controls:MetroWindow.Flyouts>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition x:Name="GridSettings" Width="0" />
+        </Grid.ColumnDefinitions>
         <WPF:WebView  Name="webView1"
+                    Grid.Column="0"
                      IsIndexedDBEnabled="True"
                      IsJavaScriptEnabled="True"
                      IsPrivateNetworkClientServerCapabilityEnabled="True"

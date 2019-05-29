@@ -22,6 +22,20 @@ namespace MusicEdge
         private SongInfo songInfo = new SongInfo();
         private string _prevArt = "";
         private Bitmap _coverArt;
+        private GridLength gridOff = new GridLength(0, GridUnitType.Pixel);
+        private GridLength gridOn = new GridLength(250, GridUnitType.Pixel);
+        //private static readonly string[] Sources = { "GMusic", "SoundCloud", "Jamendo" };
+        private const int GMUSIC = 1;
+        private const int SOUNDCLOUD = 2;
+        private const int JAMENDO = 3;
+        private enum Sources 
+        {
+            None = 0,
+            GMusic,
+            SoundCloud,
+            Jamendo
+        }
+        private int currentClient = (int)Sources.GMusic;
 
         System.Windows.Threading.DispatcherTimer timer = new System.Windows.Threading.DispatcherTimer();
 
@@ -227,15 +241,33 @@ namespace MusicEdge
 
         private void webView1_DOMContentLoaded(object sender, Microsoft.Toolkit.Win32.UI.Controls.Interop.WinRT.WebViewControlDOMContentLoadedEventArgs e)
         {
-            string script = "(function(){"+
-                "var style=document.getElementById('gmusic_custom_css');"+
-                "if(!style){ style = document.createElement('STYLE');" +
-                "style.type='text/css';" +
-                "style.id='gmusic_custom_css'; " +    
-                "style.innerText = \"" + Style + "\";" + 
-                "document.getElementsByTagName('HEAD')[0].appendChild(style);" +
-                "} } )()";
-            webView1.InvokeScriptAsync("eval", new string[] { script });
+            if (webView1.Source.ToString().Contains("https://play.google.com/music"))
+            {
+                currentClient = (byte)Sources.GMusic;
+            }else if (webView1.Source.ToString().Contains("https://soundcloud.com"))
+            {
+                currentClient = (byte)Sources.SoundCloud;
+            }else if (webView1.Source.ToString().Contains("https://www.jamendo.com"))
+            {
+                currentClient = (byte)Sources.Jamendo;
+            }
+
+            switch (currentClient)
+            {
+                case GMUSIC:
+                    string script = "(function(){"+
+                    "var style=document.getElementById('gmusic_custom_css');"+
+                    "if(!style){ style = document.createElement('STYLE');" +
+                    "style.type='text/css';" +
+                    "style.id='gmusic_custom_css'; " +    
+                    "style.innerText = \"" + Style + "\";" + 
+                    "document.getElementsByTagName('HEAD')[0].appendChild(style);" +
+                    "} } )()";
+                    webView1.InvokeScriptAsync("eval", new string[] { script });
+
+                    break;
+
+            }
         }
 
         private async System.Threading.Tasks.Task ClickAsync()
@@ -252,18 +284,81 @@ namespace MusicEdge
 
         private async System.Threading.Tasks.Task UpdateSongInfo()
         {
-            var artist = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('player-artist')?document.getElementById('player-artist').innerText:''" });
+            var query = "";
+            switch (currentClient)
+            {
+                case GMUSIC:
+                    query = "document.getElementById('player-artist')?document.getElementById('player-artist').innerText:''";
+                    break;
+                case SOUNDCLOUD:
+                    query = "document.querySelector('.playControls__soundBadge').querySelector('.playbackSoundBadge__titleContextContainer a').title";
+                    break;
+                case JAMENDO:
+                    query = "document.querySelector('.js-player-artistId').innerText";
+                    break;
+            }
+            var artist = await webView1.InvokeScriptAsync("eval", new[] { query });
             songInfo.Artist = artist;
 
-            var title = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('currently-playing-title')?document.getElementById('currently-playing-title').innerText:''" });
+            switch (currentClient)
+            {
+                case GMUSIC:
+                    query = "document.getElementById('currently-playing-title')?document.getElementById('currently-playing-title').innerText:''";
+                    break;
+                case SOUNDCLOUD:
+                    query = "document.querySelector('.playControls__soundBadge').querySelector('.playbackSoundBadge__titleLink').title";
+                    break;
+                case JAMENDO:
+                    query = "document.querySelector('.js-player-name').innerText";
+                    break;
+            }
+            var title = await webView1.InvokeScriptAsync("eval", new[] { query });
             songInfo.Title = title;
 
-            var album = await webView1.InvokeScriptAsync("eval", new[] { "document.querySelectorAll('.player-album').length>0?document.querySelectorAll('.player-album')[0].innerText:''" });
+            switch (currentClient)
+            {
+                case GMUSIC:
+                    query = "document.querySelectorAll('.player-album').length>0?document.querySelectorAll('.player-album')[0].innerText:''";
+                    break;
+                case SOUNDCLOUD:
+                    query = "''";
+                    break;
+                case JAMENDO:
+                    query = "''";
+                    break;
+            }
+            var album = await webView1.InvokeScriptAsync("eval", new[] { query });
             songInfo.Album = album;
 
-            this.Title = (title == "") ? "Google Music Desktop Player": songInfo.Artist + " - " + songInfo.Title;
+            var prefix = "";
+            switch (currentClient)
+            {
+                case GMUSIC:
+                    prefix = "Google Music";
+                        break;
+                case SOUNDCLOUD:
+                    prefix = "SoundCloud";
+                    break;
+                case JAMENDO:
+                    prefix = "Jamendo";
+                    break;
+            }
+            this.Title = (title == "") ? prefix : songInfo.Artist + " - " + songInfo.Title;
 
-            var coverArt = await webView1.InvokeScriptAsync("eval", new[] { "document.getElementById('playerSongInfo').firstChild.firstChild.src" });
+            switch (currentClient)
+            {
+                case GMUSIC:
+                    query = "document.getElementById('playerSongInfo').firstChild.firstChild.src";
+                    break;
+                case SOUNDCLOUD:
+                    query = "document.querySelector('.playControls__soundBadge').querySelector('.image span').style.backgroundImage.match(/url\\(\"(.*)\"\\)/)[1]";
+                    query = query.Replace("50x50", "200x200");
+                    break;
+                case JAMENDO:
+                    query = "document.querySelector('.js-full-player-cover-img').src";
+                    break;
+            }
+            var coverArt = await webView1.InvokeScriptAsync("eval", new[] { query });
             songInfo.CoverArt = coverArt;
             if (_prevArt != songInfo.CoverArt)
             {
@@ -304,43 +399,127 @@ namespace MusicEdge
 
         private void Play()
         {
-            webView1.InvokeScriptAsync("eval", new[]
+            switch(currentClient)
             {
-               "if(document.querySelectorAll('[data-id=\"play-pause\"]')[0].title =='Play'){document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();}"
-           });
-            //GetAlbumArt();
+                case GMUSIC:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                       "if(document.querySelectorAll('[data-id=\"play-pause\"]')[0].title =='Play'){document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();}"
+                    });
+                    break;
+                case SOUNDCLOUD:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "if(document.querySelector('.playControls').querySelector('.playControls__play').classList.contains('playing') == false){document.querySelector('.playControls').querySelector('.playControls__play').click()}"
+                    });
+                    break;
+                case JAMENDO:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "if(document.querySelector('button.player-controls_play').getAttribute('title') == 'Play'){document.querySelector('button.player-controls_play').click()}"
+                    });
+                    break;
+            }
         }
 
         private void Pause()
         {
-            webView1.InvokeScriptAsync("eval", new[]
+            switch(currentClient)
             {
-               "if(document.querySelectorAll('[data-id=\"play-pause\"]')[0].title =='Pause'){document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();}"
-           });
+                case GMUSIC:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                       "if(document.querySelectorAll('[data-id=\"play-pause\"]')[0].title =='Pause'){document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();}"
+                    });
+                    break;
+                case SOUNDCLOUD:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "if(document.querySelector('.playControls').querySelector('.playControls__play').classList.contains('playing')){document.querySelector('.playControls').querySelector('.playControls__play').click()}"
+                    });
+                    break;
+                case JAMENDO:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "if(document.querySelector('button.player-controls_play').getAttribute('title') == 'Pause'){document.querySelector('button.player-controls_play').click()}"
+                    });
+                    break;
+            }
         }
 
         private void Previous()
         {
-            webView1.InvokeScriptAsync("eval", new[]
+            switch(currentClient)
             {
-                "if(!document.querySelectorAll('[data-id=\"rewind\"]')[0].disabled){document.querySelectorAll('[data-id=\"rewind\"]')[0].click();}"
-            });
+                case GMUSIC:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "if(!document.querySelectorAll('[data-id=\"rewind\"]')[0].disabled){document.querySelectorAll('[data-id=\"rewind\"]')[0].click();}"
+                    });
+                    break;
+                case SOUNDCLOUD:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "document.querySelector('.playControls').querySelector('.playControls__prev').click()"
+                    });
+                    break;
+                case JAMENDO:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "document.querySelector('button.player-controls_previous').click()"
+                    });
+                    break;
+            }
         }
 
         private void PlayPause()
         {
-            webView1.InvokeScriptAsync("eval", new[]
+            switch(currentClient)
             {
-                "document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();"
-            });
+                case GMUSIC:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                       "document.querySelectorAll('[data-id=\"play-pause\"]')[0].click();"
+                    });
+                    break;
+                case SOUNDCLOUD:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "document.querySelector('.playControls').querySelector('.playControls__play').click()"
+                    });
+                    break;
+                case JAMENDO:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "document.querySelector('button.player-controls_play').click()"
+                    });
+                    break;
+            }
         }
 
         private void Next()
         {
-            webView1.InvokeScriptAsync("eval", new[]
+            switch(currentClient)
             {
-                "if(!document.querySelectorAll('[data-id=\"forward\"]')[0].disabled){document.querySelectorAll('[data-id=\"forward\"]')[0].click();}"
-            });
+                case GMUSIC:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "if(!document.querySelectorAll('[data-id=\"forward\"]')[0].disabled){document.querySelectorAll('[data-id=\"forward\"]')[0].click();}"
+                    });
+                    break;
+                case SOUNDCLOUD:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "document.querySelector('.playControls').querySelector('.playControls__next').click()"
+                    });
+                    break;
+                case JAMENDO:
+                    webView1.InvokeScriptAsync("eval", new[]
+                    {
+                        "document.querySelector('button.player-controls_next').click()"
+                    });
+                    break;
+            }
         }
 
         /**
@@ -361,5 +540,35 @@ namespace MusicEdge
             Previous();
         }
 
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            if (Settings.IsOpen)
+            {
+                Settings.IsOpen = false;
+                GridSettings.Width = gridOff;
+            }
+            else
+            {
+                Settings.IsOpen = true;
+                GridSettings.Width = gridOn;
+            }
+        }
+
+        private void Button_GMusic(object sender, RoutedEventArgs e)
+        {
+            webView1.Source = new Uri("https://play.google.com/music");
+        }
+        private void Button_SoundCloud(object sender, RoutedEventArgs e)
+        {
+            webView1.Source = new Uri("https://soundcloud.com");
+        }
+        private void Button_Jamendo(object sender, RoutedEventArgs e)
+        {
+            webView1.Source = new Uri("https://www.jamendo.com/start");
+        }
+        private void Settings_ClosingFinished(object sender, RoutedEventArgs e)
+        {
+            GridSettings.Width = gridOff;
+        }
     }
 }
